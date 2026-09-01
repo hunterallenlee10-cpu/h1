@@ -1,0 +1,505 @@
+@import 'tailwindcss';
+
+/* Border radii, carried over from the parent stylesheet so every card, button
+   and badge keeps the corner it had as a page inside the LEU site. The parent
+   drove these off a shadcn `--radius: 0.625rem` token through `@theme inline`;
+   this site has no shadcn tokens, so the resolved values are inlined directly
+   (0.625rem × 0.6 / 0.8 / 1 / 1.4 / 1.8 / 2.2 / 2.6). Without this block
+   Tailwind's smaller defaults apply and every `rounded-*` corner shrinks —
+   `rounded-lg` from 10px to 8px, `rounded-xl` from 14px to 12px. */
+@theme {
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.625rem;
+  --radius-xl: 0.875rem;
+  --radius-2xl: 1.125rem;
+  --radius-3xl: 1.375rem;
+  --radius-4xl: 1.625rem;
+}
+
+/* ---------------------------------------------------------------------------
+   Palette
+
+   Every colour below is a `--h1c-*` custom property, set on `<html>` by
+   app/layout.tsx from `H1_PALETTE` in data/h1.ts. This file holds no palette
+   hex of its own, so editing the palette cannot leave a stale colour behind.
+   The literal fallbacks on `html` exist only for the instant before React
+   hydrates the inline style, and match `ink` exactly.
+
+   The two documented exceptions are the vignette values in `.h1c-hero-bg`,
+   a shade either side of `ink` so the hero background has a centre. They are
+   not brand colours and appear nowhere else — docs/H1.md §4.
+   --------------------------------------------------------------------------- */
+
+@layer base {
+  * {
+    border-color: var(--h1c-line, #23262E);
+    outline-color: var(--h1c-gold, #FFD700);
+  }
+
+  html {
+    @apply scroll-smooth;
+    background-color: var(--h1c-ink, #08090A);
+    /* Clears the fixed 80px header for `href="#section"` anchors, the same
+       offset `smoothScrollToElement` uses. Change both together. */
+    scroll-padding-top: 80px;
+  }
+
+  body {
+    @apply font-sans antialiased text-white;
+    background-color: var(--h1c-ink, #08090A);
+  }
+
+  /* Smooth scrolling with reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  ::selection {
+    background-color: var(--h1c-gold, #FFD700);
+    color: var(--h1c-ink, #08090A);
+  }
+}
+
+@layer components {
+  .section-container {
+    @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .heading-lg {
+    @apply text-3xl font-bold tracking-tight md:text-4xl;
+  }
+
+  /* Header and footer text links. Chalk at rest, gold on hover and focus, an
+     underline that grows in from the left. These are the two places on the
+     site that link to sections rather than acting on them, which is why they
+     get their own treatment instead of `.h1-tap`. */
+  .h1-nav-link {
+    position: relative;
+    color: var(--h1c-chalk);
+    transition: color 160ms ease;
+  }
+  .h1-nav-link::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -0.3rem;
+    height: 2px;
+    width: 0;
+    background-color: var(--h1c-gold);
+    transition: width 300ms ease;
+  }
+  .h1-nav-link:hover,
+  .h1-nav-link:focus-visible {
+    color: var(--h1c-gold);
+  }
+  .h1-nav-link:hover::after,
+  .h1-nav-link:focus-visible::after {
+    width: 100%;
+  }
+
+  /* Footer links: muted at rest, gold when pointed at. No underline animation;
+     the footer is a list, not a bar. */
+  .h1-muted-link {
+    color: var(--h1c-muted);
+    transition: color 160ms ease;
+  }
+  .h1-muted-link:hover,
+  .h1-muted-link:focus-visible {
+    color: var(--h1c-gold);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   H1 Performance hero — "The Clock"
+   Two consumers: `.h1c-hero-bg` in components/h1/H1HeroSection.tsx, and
+   everything else in components/h1/H1ProofRotator.tsx.
+
+   The palette arrives as custom properties, set on the hero `<section>` from
+   `H1_PALETTE` and again on `.h1c-readout` so the rotator stands on its own
+   wherever it is mounted. Nothing here writes a palette hex, so editing
+   `H1_PALETTE` cannot leave a stale colour behind in this block.
+
+   Two literal colours are deliberate and are not palette values: `#0c0e12` and
+   `#050607` in the hero vignette, a shade either side of `ink` so the
+   background has a centre. docs/H1.md §4 says use `H1_PALETTE`; these are the
+   documented exception, and they exist only in `.h1c-hero-bg`.
+
+   The one rule everything here serves: the figure changes every few seconds,
+   directly above the hero's call to action, so nothing about a fact may change
+   the height of the readout. A caption that wraps to two lines on one fact and
+   one on the next would make the buttons below it hop, which is the first
+   defect anyone would notice. Hence the reserved minimums, and hence
+   `tabular-nums` — proportional digits change width on every frame of a count
+   and the number visibly jitters.
+   --------------------------------------------------------------------------- */
+
+/* Deliberately static. Every moving thing in this hero lives inside the
+   readout, which is what lets one pause control stop all of it — a background
+   that kept sweeping after the figures froze would leave the section still
+   moving, and WCAG 2.2.2 unsatisfied. The warm pool sits under the readout,
+   low and left, where the copy column is. */
+.h1c-hero-bg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      70% 90% at 26% 42%,
+      color-mix(in srgb, var(--h1c-gold) 10%, transparent) 0%,
+      transparent 62%
+    ),
+    radial-gradient(120% 120% at 50% 50%, #0c0e12 0%, var(--h1c-ink) 62%, #050607 100%);
+}
+
+.h1c-readout {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.h1c-fact {
+  position: relative;
+  padding: 1.25rem 0;
+  border-block: 1px solid color-mix(in srgb, var(--h1c-gold) 26%, transparent);
+  animation: h1c-fact-in 340ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  /* Clips the gate. The sweep's easing spends its last third almost stationary
+     at the far edge, so without this the bright band finishes outside the
+     readout — parked at ~104% of its width, still at 85% opacity, jutting into
+     whatever sits beside the hero column. Also keeps the `nowrap` figures from
+     spilling at extreme widths. */
+  overflow: hidden;
+}
+
+/* The timing gate. A full-width strip carrying one thin bright band, moved by
+   `transform` — animating `left` on a 2px element would work but would lay out
+   on every frame, and the percentage here resolves against the strip's own
+   width, which is the whole readout. */
+.h1c-gate {
+  position: absolute;
+  inset-block: 0;
+  inset-inline: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent 47.6%,
+    var(--h1c-gold) 50%,
+    transparent 52.4%
+  );
+  opacity: 0;
+  animation: h1c-gate-sweep 1500ms cubic-bezier(0.22, 1, 0.36, 1) 120ms both;
+}
+
+.h1c-metric {
+  margin: 0;
+  min-height: 1.15em;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--h1c-chalk);
+}
+
+.h1c-figures {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35em;
+  margin: 0.35rem 0 0;
+  font-size: clamp(2.1rem, 7vw, 6.5rem);
+  font-weight: 700;
+  line-height: 1;
+  min-height: 1em;
+  letter-spacing: -0.045em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.h1c-from { color: var(--h1c-muted); }
+.h1c-value { color: var(--h1c-gold); }
+.h1c-arrow {
+  font-size: 0.46em;
+  color: var(--h1c-muted);
+  letter-spacing: 0;
+}
+.h1c-unit {
+  font-size: 0.3em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--h1c-muted);
+}
+
+/* Reserved so a shorter attribution cannot pull the call to action up under
+   it. One line is enough: measured across every fact from 1440px down to
+   320px, the longest — "Average across H1 baseball players", 208px — still has
+   80px of headroom on the narrowest viewport, so none of them wrap.
+   That is a constraint, not a coincidence. An attribution long enough to wrap
+   would make the CTA hop every few seconds; keep them under about 34
+   characters, or raise this reservation to match. */
+.h1c-attrib {
+  margin: 0.6rem 0 0;
+  min-height: 1.4em;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  color: var(--h1c-muted);
+}
+
+.h1c-controls {
+  display: flex;
+  align-items: baseline;
+  gap: 0.875rem;
+  flex-wrap: wrap;
+}
+
+.h1c-pause {
+  flex: none;
+  /* "Play" is narrower than "Pause"; without a floor the button resizes on
+     every press and shoves the qualifier beside it. */
+  min-inline-size: 5.25rem;
+  text-align: center;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--h1c-muted);
+  background: none;
+  border: 1px solid var(--h1c-line);
+  border-radius: 999px;
+  padding: 0.3rem 0.75rem;
+  cursor: pointer;
+  transition: color 160ms ease, border-color 160ms ease;
+}
+.h1c-pause:hover {
+  color: var(--h1c-gold);
+  border-color: color-mix(in srgb, var(--h1c-gold) 55%, transparent);
+}
+.h1c-pause:focus-visible {
+  outline: 2px solid var(--h1c-gold);
+  outline-offset: 2px;
+}
+
+.h1c-qualifier {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--h1c-muted);
+}
+
+/* Pausing has to stop the sweep as well as the rotation. A hero that freezes
+   its readout while a bright line keeps crossing it has not stopped moving.
+
+   `visibility` rather than `opacity`, because the animation drives opacity and
+   would win. And the animation is paused rather than removed: setting
+   `animation: none` here would restart the sweep from the beginning on resume,
+   replaying it across a fact that has been on screen for several seconds. */
+.h1c-readout[data-paused="true"] .h1c-gate {
+  animation-play-state: paused;
+  visibility: hidden;
+}
+
+/* Vertical space is the scarce resource on a phone: the readout, the headline
+   and the copy all sit above the primary call to action, and the point of this
+   hero is that someone sees the proof *and* the button. */
+@media (max-width: 640px) {
+  .h1c-fact {
+    padding: 0.9rem 0;
+  }
+  .h1c-attrib {
+    margin-top: 0.45rem;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   H1 Performance — hover vocabulary
+
+   Two tiers, and the difference between them is the point.
+
+   `.h1-tap` is for things that do something when you click them. It moves: a
+   lift and a slight scale, a pointer cursor, a focus ring.
+
+   `.h1-live` is for surfaces that do not. It lights up instead — a gold ring
+   just inside the existing border, a soft glow behind, and a two-pixel rise.
+   What it never does is scale, and it never takes a pointer cursor, because a
+   card that behaves exactly like a button gets clicked and nothing happens.
+   The rise is small enough to read as depth rather than as an affordance.
+
+   The ring is drawn rather than set with `border-color`, because these cards
+   colour their borders from `H1_PALETTE` through inline styles, which no
+   stylesheet rule can override without `!important`. Layering a ring inside
+   the border gets the same read with nothing fighting.
+
+   It is drawn on a pseudo-element stacked above the card's contents, not as an
+   inset shadow on the card itself. An inset shadow paints onto the card's own
+   background, underneath its children — and the coach cards bleed a photograph
+   to three of their edges, so there the ring disappeared behind the image and
+   survived only around the text below it, reading as a stray gold line under
+   the photo instead of as a border.
+
+   All of it sits behind `@media (hover: hover)`. On a touchscreen `:hover`
+   latches after a tap and the card stays lit until you touch something else.
+   --------------------------------------------------------------------------- */
+
+.h1-live,
+.h1-tap {
+  transition:
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 220ms ease,
+    background-color 220ms ease,
+    color 220ms ease;
+}
+
+.h1-live {
+  position: relative;
+}
+
+/* Carries the ring. `border-radius: inherit` keeps it on the card's own
+   corners whatever they are, and it never intercepts a pointer. */
+.h1-live::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--h1c-gold) 45%, transparent);
+  transition: opacity 220ms ease;
+}
+
+.h1-live .h1-accent,
+.h1-live .h1-zoom {
+  transition:
+    inline-size 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (hover: hover) {
+  .h1-live:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 16px 36px -20px rgba(0, 0, 0, 0.95),
+      0 0 34px -14px color-mix(in srgb, var(--h1c-gold) 26%, transparent);
+  }
+
+  .h1-live:hover::after {
+    opacity: 1;
+  }
+
+  /* The marker bars on the program and process cards. Extending one is the
+     clearest "this is awake" signal available that costs no layout — the bar
+     sits alone on its line. */
+  .h1-live:hover .h1-accent {
+    inline-size: 3.75rem;
+  }
+
+  /* Coach photography. The image grows in place rather than pushing the card
+     around, so whatever wraps it has to clip — the card alone is not enough
+     when the photo stops short of the card's own bottom edge. */
+  .h1-live:hover .h1-zoom {
+    transform: scale(1.045);
+  }
+
+  .h1-tap:hover {
+    transform: translateY(-2px) scale(1.02);
+  }
+}
+
+/* Browsers do not give `<button>` a pointer cursor, and the whole premise of
+   the two tiers is that the cursor tells you which one you are over. */
+.h1-tap {
+  cursor: pointer;
+}
+.h1-tap:disabled {
+  cursor: not-allowed;
+}
+
+.h1-tap:active {
+  transform: translateY(0) scale(0.985);
+}
+
+.h1-tap:focus-visible {
+  outline: 2px solid var(--h1c-gold);
+  outline-offset: 3px;
+}
+
+/* The testimonials track is focusable on purpose — a scroller that cannot take
+   focus cannot be scrolled from the keyboard — and its edges are now covered by
+   the peek fades. The browser's default ring would be painted under them. This
+   one matches `.h1-tap:focus-visible` and its outward offset puts it clear of
+   the fade strips entirely.
+
+   This is also why those fades are overlays rather than a `mask-image` on the
+   track: a mask erases the ring outright. Measured, on a focused masked track
+   against an unmasked control, at zero surviving ring pixels against 2864. */
+#h1-testimonials-track:focus-visible {
+  outline: 2px solid var(--h1c-gold);
+  outline-offset: 3px;
+}
+
+/* The site-wide reset in `@layer base` collapses transition durations, but a
+   transform applied on `:hover` is a state rather than a transition and would
+   still jump. The illumination stays — it conveys the same thing without
+   moving anything. */
+@media (prefers-reduced-motion: reduce) {
+  .h1-live:hover,
+  .h1-tap:hover,
+  .h1-tap:active,
+  .h1-live:hover .h1-zoom {
+    transform: none;
+  }
+  .h1-live:hover .h1-accent {
+    inline-size: revert-layer;
+  }
+}
+
+@keyframes h1c-fact-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.4rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes h1c-gate-sweep {
+  0% {
+    transform: translateX(-52%);
+    opacity: 0;
+  }
+  18%,
+  82% {
+    opacity: 0.85;
+  }
+  100% {
+    transform: translateX(52%);
+    opacity: 0;
+  }
+}
+
+/* The rotation and the counting are stopped in the component, which reads the
+   same preference; these are the parts CSS owns. The pause control goes with
+   them: with nothing moving there is nothing to pause, and leaving a dead
+   button in the tab order is worse than removing it. */
+@media (prefers-reduced-motion: reduce) {
+  .h1c-fact,
+  .h1c-gate {
+    animation: none;
+  }
+  .h1c-gate {
+    display: none;
+  }
+  .h1c-pause {
+    display: none;
+  }
+}
