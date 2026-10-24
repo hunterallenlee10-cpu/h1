@@ -217,6 +217,24 @@ export function H1ProofRotator({ points }: { points: H1ProofPoint[] }) {
       }
       data-paused={paused ? "true" : "false"}
     >
+      {/* The scoreboard header: a label and one tick per result, the
+          current one lit. Hidden from assistive technology with the rest of
+          the readout — see the component note. */}
+      <div className="h1c-readout-head" aria-hidden="true">
+        <span>Results board</span>
+        {rotates ? (
+          <span className="h1c-readout-dots">
+            {points.map((p, i) => (
+              <span
+                key={p.id}
+                className="h1c-readout-dot"
+                data-active={i === index ? "true" : "false"}
+              />
+            ))}
+          </span>
+        ) : null}
+      </div>
+
       {/* Keyed on the fact, so both the entry animation and the gate sweep
           restart when the readout advances. */}
       <div className="h1c-fact" key={point.id} aria-hidden="true">

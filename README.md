@@ -47,14 +47,16 @@ pnpm build
 | --- | --- |
 | `data/h1.ts` | Every word and number on the page: palette, proof points, packages, coaches, testimonials, FAQ |
 | `types/index.ts` | The shapes of the above. The proof-point union is what stops a figure shipping without its attribution |
-| `components/h1/` | The twelve sections, top to bottom |
+| `components/h1/` | The sections, top to bottom, plus the shared heading, ticker, result charts, rotator and mobile booking bar |
 | `components/layout/` | Header and footer |
 | `app/page.tsx` | The page and its structured data |
 | `app/api/h1-consultation/route.ts` | The consultation form handler |
 | `app/icon.tsx`, `app/apple-icon.tsx`, `app/opengraph-image.tsx` | Favicon, home-screen icon, and link preview, generated at build time from the mark |
 | `lib/site.ts` | The site's own URL and name. Nothing else hardcodes a domain |
-| `public/h1/` | Coach and athlete photos |
-| `docs/H1.md` | The build spec and content rules |
+| `lib/consultation.ts` | `goToConsultation()` — scroll to the form, optionally pre-selecting a package |
+| `lib/og.ts`, `assets/og/` | The link preview's own font files (SIL OFL, licence beside them) and athlete PNG. Not served to visitors |
+| `public/h1/` | Coach and athlete photos; `cutouts/` holds the background-removed coach photos used in the hero and on the coach cards |
+| `docs/H1.md` | The build spec and content rules. §9 covers the 2026-10 redesign: the design system, the motion rules, and why each new display stays within the sourcing rules |
 
 ## Environment variables
 

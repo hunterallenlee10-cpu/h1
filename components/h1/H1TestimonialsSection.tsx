@@ -9,8 +9,9 @@ import {
 } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, Quote } from "lucide-react";
-import { smoothScrollToElement } from "@/lib/scrollUtils";
+import { goToConsultation } from "@/lib/consultation";
 import { H1_PALETTE, h1Testimonials } from "@/data/h1";
+import { H1SectionHeading } from "@/components/h1/H1SectionHeading";
 
 /**
  * Two states, one section. While `h1Testimonials` is empty the placeholder
@@ -83,10 +84,39 @@ const CARD_SIZES = "(max-width: 768px) 85vw, (max-width: 1024px) 45vw, 400px";
  * is usually a dark night-game photograph, and holding a heavy scrim across the
  * whole strip turns it into a smudge rather than a card you can tell is there.
  */
+const SECTION_SURFACE = H1_PALETTE.ink;
+
 const edgeFade = (side: "left" | "right") =>
   `linear-gradient(to ${side === "left" ? "right" : "left"}, ${
-    H1_PALETTE.steel
-  } 0%, ${H1_PALETTE.steel}8C 25%, transparent 65%)`;
+    SECTION_SURFACE
+  } 0%, ${SECTION_SURFACE}8C 25%, transparent 65%)`;
+
+/**
+ * The quote with its `highlight` set apart — or the quote unchanged if the
+ * highlight is missing or is not, character for character, part of it. The
+ * check is the guard: a highlight that drifted from the quote (a typo, a
+ * "tidied" apostrophe) would otherwise put words in an athlete's mouth.
+ */
+function QuoteBody({ quote, highlight }: { quote: string; highlight?: string }) {
+  const at = highlight ? quote.indexOf(highlight) : -1;
+  if (!highlight || at === -1) return <>{quote}</>;
+  return (
+    <>
+      {quote.slice(0, at)}
+      <mark
+        className="rounded-sm px-0.5 font-medium"
+        style={{
+          backgroundColor: `${H1_PALETTE.gold}1F`,
+          color: H1_PALETTE.chalk,
+          boxShadow: `inset 0 -2px 0 ${H1_PALETTE.gold}`,
+        }}
+      >
+        {highlight}
+      </mark>
+      {quote.slice(at + highlight.length)}
+    </>
+  );
+}
 
 /** Middle copy is the real one; `a` and `c` are the loop's clones. */
 const LOOPED_COPIES = ["a", "b", "c"] as const;
@@ -401,24 +431,23 @@ export function H1TestimonialsSection() {
   return (
     <section
       id="h1-testimonials"
-      className="border-y py-20 md:py-28"
-      style={{
-        borderColor: H1_PALETTE.line,
-        backgroundColor: H1_PALETTE.steel,
-      }}
+      aria-labelledby="h1-testimonials-title"
+      className="py-20 md:py-28"
+      style={{ backgroundColor: SECTION_SURFACE }}
     >
       <div className="section-container">
-        <div className="mx-auto mb-14 max-w-3xl text-center">
-          <span
-            className="text-sm font-semibold tracking-widest"
-            style={{ color: H1_PALETTE.gold }}
-          >
-            PLAYER TESTIMONIES
-          </span>
-          <h2 className="heading-lg mt-3 text-white">
-            Athlete Results, In Their Words
-          </h2>
-        </div>
+        <H1SectionHeading
+          index="07"
+          eyebrow="Player testimonies"
+          id="h1-testimonials-title"
+          title={
+            <>
+              Athlete results,{" "}
+              <span style={{ color: H1_PALETTE.gold }}>in their words.</span>
+            </>
+          }
+          lead="Posted the way the athletes sent them — every word theirs. The line set apart in each card is theirs too, quoted exactly."
+        />
 
         {hasTestimonials ? (
           <div
@@ -483,15 +512,15 @@ export function H1TestimonialsSection() {
                             ? undefined
                             : `${index + 1} of ${TESTIMONY_COUNT}`
                         }
-                        className={`h1-live flex shrink-0 snap-start flex-col overflow-hidden rounded-xl border ${CARD_WIDTHS}`}
+                        className={`h1-live flex shrink-0 snap-start flex-col overflow-clip rounded-2xl border ${CARD_WIDTHS}`}
                         style={{
                           borderColor: H1_PALETTE.line,
-                          backgroundColor: `${H1_PALETTE.chalk}05`,
+                          backgroundColor: H1_PALETTE.steel,
                         }}
                       >
                         {testimonial.photo && (
                           <div
-                            className="relative aspect-[4/3] w-full overflow-hidden"
+                            className="relative order-1 aspect-[4/3] w-full overflow-clip"
                             style={{
                               maskImage: PHOTO_FADE_MASK,
                               WebkitMaskImage: PHOTO_FADE_MASK,
@@ -504,38 +533,58 @@ export function H1TestimonialsSection() {
                               sizes={CARD_SIZES}
                               className="h1-zoom object-cover"
                             />
+                            <span
+                              className="h1-eyebrow absolute left-4 top-4 rounded-full px-2.5 py-1 text-[0.625rem] font-semibold"
+                              style={{
+                                backgroundColor: `${H1_PALETTE.ink}CC`,
+                                color: H1_PALETTE.gold,
+                              }}
+                              aria-hidden="true"
+                            >
+                              {String(index + 1).padStart(2, "0")} /{" "}
+                              {String(TESTIMONY_COUNT).padStart(2, "0")}
+                            </span>
                           </div>
                         )}
-                        <div
-                          className={
-                            testimonial.photo
-                              ? "flex flex-1 flex-col p-8 pt-4"
-                              : "flex flex-1 flex-col p-8"
-                          }
-                        >
+                        {/* The quote, then the athlete — in source order, so
+                            assistive technology reads quote then attribution,
+                            and `<figcaption>` stays the figure's last child as
+                            HTML requires. CSS `order` lifts the name above the
+                            quote on screen, as the card's nameplate. */}
+                        <div className="order-3 flex flex-1 flex-col px-7 pb-7 md:px-8 md:pb-8">
                           <Quote
-                            className="mb-4 h-7 w-7"
-                            style={{ color: H1_PALETTE.gold }}
+                            className="mb-3 h-6 w-6"
+                            style={{ color: `${H1_PALETTE.gold}99` }}
                             aria-hidden="true"
                           />
                           <blockquote
-                            className="mb-6 flex-1 text-sm leading-relaxed"
+                            className="flex-1 text-[0.9375rem] leading-relaxed"
                             style={{ color: H1_PALETTE.muted }}
                           >
-                            {testimonial.quote}
+                            <QuoteBody
+                              quote={testimonial.quote}
+                              highlight={testimonial.highlight}
+                            />
                           </blockquote>
-                          <figcaption>
-                            <div className="font-semibold text-white">
-                              {testimonial.name}
-                            </div>
-                            <div
-                              className="text-xs"
-                              style={{ color: H1_PALETTE.muted }}
-                            >
-                              {testimonial.detail}
-                            </div>
-                          </figcaption>
                         </div>
+                        <figcaption
+                          className={`order-2 px-7 pb-5 md:px-8 ${
+                            testimonial.photo ? "pt-3" : "pt-7 md:pt-8"
+                          }`}
+                        >
+                          <div
+                            className="h1-display text-3xl"
+                            style={{ color: H1_PALETTE.chalk }}
+                          >
+                            {testimonial.name}
+                          </div>
+                          <div
+                            className="h1-eyebrow mt-1.5 text-[0.625rem]"
+                            style={{ color: H1_PALETTE.gold }}
+                          >
+                            {testimonial.detail}
+                          </div>
+                        </figcaption>
                       </figure>
                     );
                   }),
@@ -585,11 +634,11 @@ export function H1TestimonialsSection() {
                   aria-label={label}
                   aria-controls="h1-testimonials-track"
                   tabIndex={canScroll ? undefined : -1}
-                  className="h1-tap flex h-12 w-12 items-center justify-center rounded-full border"
+                  className="h1-tap flex h-14 w-14 items-center justify-center rounded-full border"
                   style={{
-                    borderColor: `${H1_PALETTE.gold}4D`,
+                    borderColor: `${H1_PALETTE.gold}66`,
                     color: H1_PALETTE.gold,
-                    backgroundColor: `${H1_PALETTE.chalk}08`,
+                    backgroundColor: `${H1_PALETTE.gold}0D`,
                   }}
                 >
                   <Icon className="h-5 w-5" aria-hidden="true" />
@@ -599,7 +648,7 @@ export function H1TestimonialsSection() {
           </div>
         ) : (
           <div
-            className="relative mx-auto max-w-3xl overflow-hidden rounded-2xl border px-8 py-14 text-center md:px-14"
+            className="relative mx-auto max-w-3xl overflow-clip rounded-2xl border px-8 py-14 text-center md:px-14"
             style={{
               borderColor: `${H1_PALETTE.gold}33`,
               backgroundColor: `${H1_PALETTE.chalk}05`,
@@ -645,11 +694,7 @@ export function H1TestimonialsSection() {
                 Already training with H1?{" "}
                 <button
                   type="button"
-                  onClick={() =>
-                    smoothScrollToElement("h1-consultation-form", {
-                      focus: true,
-                    })
-                  }
+                  onClick={() => goToConsultation()}
                   className="font-semibold underline-offset-4 transition-colors hover:underline"
                   style={{ color: H1_PALETTE.gold }}
                 >

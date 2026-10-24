@@ -96,7 +96,24 @@ export interface H1Coach {
   role: string;
   photo: string;
   photoAlt: string;
+  /**
+   * The same photograph with its background removed, for the trading-card
+   * front. Optional so a coach without one still gets a card — it falls back
+   * to `photo`. `width`/`height` are the file's own pixels, so the layout box
+   * reserved before it loads matches what arrives.
+   */
+  cutout?: {
+    src: string;
+    width: number;
+    height: number;
+  };
   credentials: string[];
+  /**
+   * Up to three lines of `credentials`, restated as a figure and a label for
+   * the stat block on the card. Every one must be a line already in
+   * `credentials` — this is a display of the record, never an addition to it.
+   */
+  featured?: { value: string; label: string }[];
 }
 
 export interface H1Testimonial {
@@ -114,6 +131,13 @@ export interface H1Testimonial {
     src: string;
     alt: string;
   };
+  /**
+   * One sentence from `quote`, copied character for character, which the card
+   * sets apart in the athlete's own words. Must be an exact substring of
+   * `quote` — the card checks, and renders the quote without emphasis if it
+   * is not, so a paraphrase can never be displayed as something said.
+   */
+  highlight?: string;
 }
 
 export interface H1Faq {

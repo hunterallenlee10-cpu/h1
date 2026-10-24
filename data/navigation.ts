@@ -21,10 +21,11 @@ export interface SiteNavItem {
 }
 
 export const siteNav: readonly SiteNavItem[] = [
+  { id: "nav-results", label: "Results", href: "/#h1-results" },
   { id: "nav-program", label: "Program", href: "/#h1-program" },
   { id: "nav-coaches", label: "Coaches", href: "/#h1-coaches" },
-  { id: "nav-pricing", label: "Pricing", href: "/#h1-pricing" },
   { id: "nav-testimonials", label: "Athletes", href: "/#h1-testimonials" },
+  { id: "nav-pricing", label: "Pricing", href: "/#h1-pricing" },
   { id: "nav-faq", label: "FAQ", href: "/#h1-faq" },
 ];
 

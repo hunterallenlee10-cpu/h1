@@ -36,6 +36,11 @@ export const H1_PALETTE = {
   line: "#23262E",
   /** Secondary type. */
   muted: "#8C93A1",
+  /**
+   * Secondary type on a `chalk` surface — the one light section. `muted` is
+   * tuned for ink and drops to about 3:1 on chalk; this holds about 8:1.
+   */
+  slate: "#4A505C",
 } as const;
 
 /** Public phone number, taken from the H1 flyer. */
@@ -139,9 +144,60 @@ export function proofFigure(point: H1ProofPoint): string {
   if (point.kind === "delta") {
     return point.figure;
   }
-  const from = point.from.toFixed(point.precision);
-  const to = point.to.toFixed(point.precision);
-  return `${from} → ${to}${point.unit ? ` ${point.unit}` : ""}`;
+  const { from, to, unit } = proofFigureParts(point);
+  return `${from} → ${to}${unit ? ` ${unit}` : ""}`;
+}
+
+/**
+ * A pair's two figures as separate strings, for layouts that colour the
+ * opening and closing numbers differently. The same `toFixed(precision)` as
+ * `proofFigure`, which is built from this — so a split rendering and a
+ * one-string rendering cannot disagree about a decimal place.
+ */
+export function proofFigureParts(
+  point: Extract<H1ProofPoint, { kind: "pair" }>,
+): { from: string; to: string; unit?: string } {
+  return {
+    from: point.from.toFixed(point.precision),
+    to: point.to.toFixed(point.precision),
+    unit: point.unit,
+  };
+}
+
+/**
+ * The difference a pair describes — `−0.6`, `+115 lb` — or null for a delta,
+ * which is already a difference.
+ *
+ * This is arithmetic on the two published figures, not a new claim, and it is
+ * held to the same precision rule: the result carries exactly the decimal
+ * places the source did, so `5.1 → 4.5` yields `−0.6`, never `−0.60`. The
+ * minus is U+2212, the typographic one, so it lines up with the plus.
+ */
+export function proofChange(point: H1ProofPoint): string | null {
+  if (point.kind !== "pair") return null;
+  const diff = point.to - point.from;
+  const magnitude = Math.abs(diff).toFixed(point.precision);
+  if (Number(magnitude) === 0) return null;
+  const sign = diff > 0 ? "+" : "\u2212";
+  return `${sign}${magnitude}${point.unit ? ` ${point.unit}` : ""}`;
+}
+
+/**
+ * The two magnitudes a result's chart compares, before and after, on one
+ * zero-based scale. A pair compares its own two figures. A delta compares a
+ * baseline of 100 with 100 plus the published percentage, which is what "+30%"
+ * means and nothing more — the chart shows the ratio, never an absolute value
+ * the source did not give. Returns null for a delta whose figure carries no
+ * number, which then renders without a chart.
+ */
+export function proofMagnitudes(
+  point: H1ProofPoint,
+): { before: number; after: number } | null {
+  if (point.kind === "pair") return { before: point.from, after: point.to };
+  const parsed = /^([+-]?)(\d+(?:\.\d+)?)%$/.exec(point.figure.trim());
+  if (!parsed) return null;
+  const percent = Number(parsed[2]) * (parsed[1] === "-" ? -1 : 1);
+  return { before: 100, after: 100 + percent };
 }
 
 /**
@@ -172,6 +228,37 @@ export const h1BlockNote = {
   title: "4-week training blocks",
   detail: "Each one built on the last, never repeated blindly.",
 } as const;
+
+/**
+ * The scroll-linked ticker under the hero. Program attributes only — every
+ * item is something the page already says about how H1 runs, and none of
+ * them is a result. Results live in `h1ProofPoints`, with their attributions.
+ */
+export const h1TickerItems = [
+  "Strength",
+  "Speed",
+  "Power",
+  "Durability",
+  "Custom 4-week blocks",
+  "Round-the-clock coach access",
+  "Supplement & diet research",
+  "All ages",
+  "All sports",
+  "100% remote",
+] as const;
+
+/**
+ * The setups the program is written for. One list, read by the program
+ * section's "built for your setup" row and by the consultation form's
+ * equipment question, so the page cannot promise a setup the form does not
+ * offer. The form appends its own "Not sure yet".
+ */
+export const h1EquipmentSetups = [
+  "Full weight room / commercial gym",
+  "Home or garage gym",
+  "Limited equipment (dumbbells, bands)",
+  "School weight room during season only",
+] as const;
 
 export const h1ProgramFeatures: H1ProgramFeature[] = [
   {
@@ -333,6 +420,7 @@ export const h1Coaches: H1Coach[] = [
     role: "Founder",
     photo: "/h1/hunter-lee.jpg",
     photoAlt: "Hunter Lee at bat in a Leonardtown High School uniform",
+    cutout: { src: "/h1/cutouts/hunter-lee.webp", width: 627, height: 1046 },
     credentials: [
       "2024 4A State Champion",
       "1st Team All-SMAC (Leonardtown)",
@@ -340,6 +428,12 @@ export const h1Coaches: H1Coach[] = [
       "Several additional offensive and defensive records at LHS",
       "Played at a top-5 JUCO in the nation, transferring to St. Mary's College of Maryland",
       "2024 Leonardtown High School alumnus",
+    ],
+    // Each restates a line above; nothing here is new. See H1Coach.featured.
+    featured: [
+      { value: "2024", label: "4A State Champion" },
+      { value: "1st Team", label: "All-SMAC (Leonardtown)" },
+      { value: "Top-5", label: "JUCO in the nation" },
     ],
   },
   {
@@ -349,6 +443,7 @@ export const h1Coaches: H1Coach[] = [
     photo: "/h1/aaron-wathen.jpg",
     photoAlt:
       "Aaron Wathen on the field in a St. Mary's College of Maryland uniform",
+    cutout: { src: "/h1/cutouts/aaron-wathen.webp", width: 578, height: 901 },
     credentials: [
       "2021 American Legion World Series",
       "1st Team All-United East (St. Mary's)",
@@ -356,6 +451,11 @@ export const h1Coaches: H1Coach[] = [
       "Career at St. Mary's — .360 AVG, .934 OPS",
       "Current infielder at St. Mary's College of Maryland",
       "2023 Leonardtown High School alumnus",
+    ],
+    featured: [
+      { value: ".360", label: "Career AVG at St. Mary's" },
+      { value: ".934", label: "Career OPS at St. Mary's" },
+      { value: "1st Team", label: "All-United East" },
     ],
   },
 ];
@@ -391,6 +491,8 @@ export const h1Testimonials: H1Testimonial[] = [
       src: "/h1/testimonials/mike-bittle.jpg",
       alt: "Mike Bittle at the plate at night in a black L-Town uniform, bat in hand",
     },
+    highlight:
+      "My EV jumped from 82-97 mph in just under a year of training.",
   },
   {
     id: "h1-testimonial-colt-keen",
@@ -403,6 +505,8 @@ export const h1Testimonials: H1Testimonial[] = [
       src: "/h1/testimonials/colt-keen.jpg",
       alt: "Colt Keen celebrating in an L-Town uniform after crossing the plate",
     },
+    highlight:
+      "this investment is a game-changer.",
   },
   {
     id: "h1-testimonial-noah-earhart",
@@ -415,6 +519,8 @@ export const h1Testimonials: H1Testimonial[] = [
       src: "/h1/testimonials/noah-earhart.jpg",
       alt: "Noah Earhart mid-delivery on the mound during a night game, glove raised and front leg driven up",
     },
+    highlight:
+      "My exit velocity has had a huge jump from 55 to now 70mph in just one month of training.",
   },
   {
     id: "h1-testimonial-nick-hevner",
@@ -427,6 +533,8 @@ export const h1Testimonials: H1Testimonial[] = [
       src: "/h1/testimonials/nick-hevner.jpg",
       alt: "Nick Hevner shouting in celebration in a white and gold Hornets uniform, dust hanging in the air behind him",
     },
+    highlight:
+      "the group aspect of it all is truly the best part.",
   },
   {
     id: "h1-testimonial-alex-vasquez",
@@ -439,6 +547,8 @@ export const h1Testimonials: H1Testimonial[] = [
       src: "/h1/testimonials/alex-vasquez.jpg",
       alt: "Alex Vasquez at the plate in a white Senators uniform, bat cocked in his stance with the catcher set behind him",
     },
+    highlight:
+      "They value both the physical and mental side of the game",
   },
 ];
 
