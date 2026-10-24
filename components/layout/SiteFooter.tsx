@@ -26,7 +26,8 @@ export function SiteFooter() {
       className="border-t"
       style={{ borderColor: H1_PALETTE.line, backgroundColor: H1_PALETTE.ink }}
     >
-      <div className="section-container py-12 md:py-16">
+      {/* Bottom padding below `md` clears the sticky consultation bar. */}
+      <div className="section-container pb-28 pt-12 md:py-16">
         <div className="mb-12 grid grid-cols-1 gap-10 md:grid-cols-3">
           <div>
             <div className="mb-4 flex items-center gap-3">
@@ -59,7 +60,7 @@ export function SiteFooter() {
           {/* Labelled differently from the header's "Sections" nav so a
               screen reader's landmark list tells the two apart. */}
           <nav aria-label="On this page">
-            <h2 className="mb-4 text-sm font-semibold uppercase tracking-widest text-white">
+            <h2 className="h1-eyebrow mb-4 text-white">
               On this page
             </h2>
             <ul className="space-y-2">
@@ -79,7 +80,7 @@ export function SiteFooter() {
           </nav>
 
           <nav aria-label={PARENT_NAME}>
-            <h2 className="mb-4 text-sm font-semibold uppercase tracking-widest text-white">
+            <h2 className="h1-eyebrow mb-4 text-white">
               {PARENT_NAME}
             </h2>
             <ul className="space-y-2">
@@ -92,6 +93,21 @@ export function SiteFooter() {
               ))}
             </ul>
           </nav>
+        </div>
+
+        {/* The sign-off: the name across the full width, outlined, sitting
+            on the copyright line like a wordmark painted on an outfield wall.
+            Decorative — the name is already the footer's first text. */}
+        {/* Sized to its container, not the viewport: the line is 6.12em
+            wide in Barlow Condensed 800, so 16cqi sets it at 98% of the
+            column at every width with no overflow to clip. */}
+        <div className="[container-type:inline-size]">
+          <p
+            className="h1-display h1-outline-text pointer-events-none mb-6 select-none whitespace-nowrap text-center text-[16cqi] leading-[0.8]"
+            aria-hidden="true"
+          >
+            H1 Performance
+          </p>
         </div>
 
         <div

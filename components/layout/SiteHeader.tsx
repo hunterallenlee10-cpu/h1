@@ -25,7 +25,37 @@ import { consultationHref, siteNav } from "@/data/navigation";
 export function SiteHeader() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
+
+  // Scroll spy: which section is under the reading line, a band a little
+  // below the header. The links work without it; this only adds the gold
+  // "you are here" state, marked with `aria-current` so it is announced too.
+  // Sections missing from the page (the 404) are simply never observed.
+  useEffect(() => {
+    const ids = siteNav.map((item) => item.href.slice(2));
+    const sections = ids
+      .map((id) => document.getElementById(id))
+      .filter((el): el is HTMLElement => el !== null);
+    if (sections.length === 0) return;
+
+    const visible = new Set<string>();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) visible.add(entry.target.id);
+          else visible.delete(entry.target.id);
+        }
+        // The last section in page order that is on the line wins, so
+        // a short section is not shadowed by the tall one before it.
+        const current = [...ids].reverse().find((id) => visible.has(id));
+        setActiveId(current ?? null);
+      },
+      { rootMargin: "-30% 0px -60% 0px" },
+    );
+    sections.forEach((section) => observer.observe(section));
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setIsScrolled(window.scrollY > 24);
@@ -76,7 +106,7 @@ export function SiteHeader() {
             // Portrait mark (1644x2000), on its own ratio at 40px tall.
             width={33}
             height={40}
-            priority
+            preload
             className="h-10 w-auto"
           />
           <span className="text-sm font-bold uppercase tracking-[0.2em] text-white">
@@ -86,13 +116,14 @@ export function SiteHeader() {
 
         <nav
           aria-label="Sections"
-          className="hidden items-center gap-8 lg:flex"
+          className="hidden items-center gap-6 lg:flex xl:gap-8"
         >
           {siteNav.map((item) => (
             <a
               key={item.id}
               href={item.href}
-              className="h1-nav-link text-sm font-medium"
+              aria-current={activeId === item.href.slice(2) ? "true" : undefined}
+              className="h1-nav-link font-mono text-xs font-medium uppercase tracking-[0.14em]"
             >
               {item.label}
             </a>
@@ -100,19 +131,23 @@ export function SiteHeader() {
         </nav>
 
         <div className="hidden items-center gap-5 sm:flex">
+          {/* The number moves into the menu below `xl`: six section links,
+              the mark and the CTA already fill the bar at `lg`. */}
           <a
             href={H1_PHONE_HREF}
-            className="h1-nav-link inline-flex items-center gap-2 text-sm font-semibold"
+            className="h1-nav-link hidden items-center gap-2 text-sm font-semibold xl:inline-flex"
           >
             <Phone className="h-4 w-4" aria-hidden="true" />
             {H1_PHONE}
           </a>
+          {/* Shortened between `lg` and `xl`, where the full label beside six
+              section links would wrap onto two lines. */}
           <a
             href={consultationHref}
-            className="h1-tap inline-flex items-center justify-center rounded-lg px-5 py-2.5 text-sm font-semibold"
-            style={{ backgroundColor: H1_PALETTE.gold, color: H1_PALETTE.ink }}
+            className="h1-tap h1-btn-gold inline-flex items-center justify-center whitespace-nowrap rounded-lg px-5 py-2.5 text-sm font-semibold"
           >
-            Book a Free Consultation
+            <span className="lg:hidden xl:inline">Book a Free Consultation</span>
+            <span className="hidden lg:inline xl:hidden">Free Consultation</span>
           </a>
         </div>
 
@@ -132,6 +167,16 @@ export function SiteHeader() {
           )}
         </button>
       </div>
+
+      {/* Reading progress, on the header's bottom edge. CSS-only; see
+          `.h1-progress` in globals.css. */}
+      <div
+        className="h1-progress pointer-events-none absolute inset-x-0 bottom-[-1px] h-[2px]"
+        style={{
+          background: `linear-gradient(90deg, ${H1_PALETTE.goldDeep}, ${H1_PALETTE.gold})`,
+        }}
+        aria-hidden="true"
+      />
 
       {/* Phone and tablet menu. Always in the DOM so `aria-controls` above
           points at something; `hidden` does the toggling. It lists every
@@ -162,7 +207,8 @@ export function SiteHeader() {
               key={item.id}
               href={item.href}
               onClick={closeMenu}
-              className="rounded-lg px-4 py-3 text-base font-medium text-white transition-colors hover:bg-white/5"
+              aria-current={activeId === item.href.slice(2) ? "true" : undefined}
+              className="h1-display rounded-lg px-4 py-3 text-3xl text-white transition-colors hover:bg-white/5 aria-[current=true]:text-[var(--h1c-gold)]"
             >
               {item.label}
             </a>
@@ -170,7 +216,7 @@ export function SiteHeader() {
           <a
             href={H1_PHONE_HREF}
             onClick={closeMenu}
-            className="inline-flex items-center gap-2 rounded-lg px-4 py-3 text-base font-medium text-white transition-colors hover:bg-white/5 sm:hidden"
+            className="inline-flex items-center gap-2 rounded-lg px-4 py-3 text-base font-medium text-white transition-colors hover:bg-white/5"
           >
             <Phone className="h-4 w-4" aria-hidden="true" />
             Call {H1_PHONE}
@@ -178,8 +224,7 @@ export function SiteHeader() {
           <a
             href={consultationHref}
             onClick={closeMenu}
-            className="h1-tap mt-3 inline-flex items-center justify-center rounded-lg px-5 py-3 text-base font-semibold sm:hidden"
-            style={{ backgroundColor: H1_PALETTE.gold, color: H1_PALETTE.ink }}
+            className="h1-tap h1-btn-gold mt-3 inline-flex items-center justify-center rounded-lg px-5 py-3 text-base font-semibold sm:hidden"
           >
             Book a Free Consultation
           </a>

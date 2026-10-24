@@ -19,14 +19,18 @@ export default function NotFound() {
     <main
       id="main-content"
       tabIndex={-1}
-      className="flex min-h-screen items-center pt-20"
+      className="relative flex min-h-screen items-center overflow-clip pt-20"
     >
-      <div className="section-container py-20 text-center">
-        <p
-          className="mb-3 text-sm font-semibold uppercase tracking-widest"
-          style={{ color: H1_PALETTE.gold }}
-        >
-          404
+      <div className="h1-grid-bg" aria-hidden="true" />
+      <span
+        className="h1-display h1-outline-text pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 select-none text-center text-[38vw] leading-none lg:text-[28rem]"
+        aria-hidden="true"
+      >
+        404
+      </span>
+      <div className="section-container relative py-20 text-center">
+        <p className="h1-eyebrow mb-4" style={{ color: H1_PALETTE.gold }}>
+          Error 404 · Out of bounds
         </p>
         <h1 className="heading-lg mb-4 text-white">That page isn't here.</h1>
         <p
@@ -39,8 +43,7 @@ export default function NotFound() {
         <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
           <Link
             href="/"
-            className="h1-tap group inline-flex items-center justify-center gap-2 rounded-lg px-6 py-3 font-semibold"
-            style={{ backgroundColor: H1_PALETTE.gold, color: H1_PALETTE.ink }}
+            className="h1-tap h1-btn-gold group inline-flex items-center justify-center gap-2 rounded-lg px-6 py-3 font-semibold"
           >
             <ArrowLeft
               className="h-5 w-5 transition-transform group-hover:-translate-x-1"

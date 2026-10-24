@@ -18,6 +18,8 @@ import { H1TestimonialsSection } from "@/components/h1/H1TestimonialsSection";
 import { H1FAQSection } from "@/components/h1/H1FAQSection";
 import { H1ConsultationForm } from "@/components/h1/H1ConsultationForm";
 import { H1CTASection } from "@/components/h1/H1CTASection";
+import { H1Ticker } from "@/components/h1/H1Ticker";
+import { H1StickyCTA } from "@/components/h1/H1StickyCTA";
 
 /**
  * Structured data covers only what the site can substantiate: who provides the
@@ -111,19 +113,25 @@ export default function HomePage() {
       {/* pt-20 clears the fixed 80px header. `id`/`tabIndex` make it the skip
           link's target (app/layout.tsx). */}
       <main id="main-content" tabIndex={-1} className="pt-20">
+        {/* The order is the argument: proof, then the problem it solves,
+            then how — the system, the process, the group, the coaches — then
+            what athletes say, what it costs, the doubts, and the form. The
+            nav in data/navigation.ts lists its sections in this order. */}
         <H1HeroSection />
+        <H1Ticker />
         <H1ResultsStrip />
         <H1ProblemSection />
         <H1ProgramSection />
+        <H1ProcessSection />
         <H1CultureSection />
         <H1CoachesSection />
-        <H1ProcessSection />
-        <H1PricingSection />
         <H1TestimonialsSection />
+        <H1PricingSection />
         <H1FAQSection />
         <H1ConsultationForm />
         <H1CTASection />
       </main>
+      <H1StickyCTA />
     </>
   );
 }

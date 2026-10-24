@@ -30,8 +30,15 @@ interface H1ConsultationRequest {
   packageInterest: string;
   equipment?: string;
   goals: string;
+  /** Who filled the form in: the athlete, or a parent or guardian. */
+  requesterRole?: string;
   honeypot?: string;
 }
+
+const REQUESTER_ROLES: Record<string, string> = {
+  athlete: "The athlete",
+  parent: "Parent or guardian",
+};
 
 export async function POST(request: NextRequest) {
   try {
@@ -79,6 +86,19 @@ export async function POST(request: NextRequest) {
       errors.phone = "Please enter a valid phone number";
     }
 
+    // Optional, and an unrecognised value is ignored rather than rejected:
+    // an older cached page posts no role at all.
+    const requesterRole =
+      typeof body.requesterRole === "string" &&
+      Object.hasOwn(REQUESTER_ROLES, body.requesterRole)
+        ? body.requesterRole
+        : undefined;
+
+    // A parent is submitting about someone else, so the athlete must be named.
+    if (requesterRole === "parent" && (body.athleteName?.trim() || "").length < 2) {
+      errors.athleteName = "Please enter your athlete's name";
+    }
+
     const sport = body.sport?.trim() || "";
     if (!sport) errors.sport = "Please enter the sport you train for";
 
@@ -102,7 +122,9 @@ export async function POST(request: NextRequest) {
     const athleteName = body.athleteName?.trim();
 
     const emailBody = `
-Requested By: ${fullName}
+Requested By: ${fullName}${
+      requesterRole ? ` (${REQUESTER_ROLES[requesterRole]})` : ""
+    }
 Email Address: ${email}
 Phone Number: ${phone}
 

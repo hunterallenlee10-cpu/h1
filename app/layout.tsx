@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { CSSProperties } from "react";
-import { Geist } from "next/font/google";
+import { Barlow_Condensed, Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SiteFooter } from "@/components/layout/SiteFooter";
@@ -14,7 +14,25 @@ import {
 } from "@/lib/site";
 import "./globals.css";
 
-const geistSans = Geist({ subsets: ["latin"] });
+/**
+ * Three families — see the `@theme inline` block in globals.css for which one
+ * does what. Each is exposed as a CSS variable rather than applied as a class,
+ * so Tailwind's `font-sans`, `font-display` and `font-mono` resolve to them.
+ * Barlow Condensed ships only the weights the page draws: 600 for small
+ * condensed labels, 700 and 800 for headlines and figures, and the 800 italic
+ * used for emphasis inside headlines.
+ */
+const geistSans = Geist({ subsets: ["latin"], variable: "--font-geist" });
+const geistMono = Geist_Mono({
+  subsets: ["latin"],
+  variable: "--font-geist-mono",
+});
+const barlow = Barlow_Condensed({
+  subsets: ["latin"],
+  weight: ["600", "700", "800"],
+  style: ["normal", "italic"],
+  variable: "--font-barlow",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -75,6 +93,7 @@ const paletteVars = {
   "--h1c-gold-deep": H1_PALETTE.goldDeep,
   "--h1c-line": H1_PALETTE.line,
   "--h1c-muted": H1_PALETTE.muted,
+  "--h1c-slate": H1_PALETTE.slate,
 } as CSSProperties;
 
 export default function RootLayout({
@@ -83,8 +102,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" style={paletteVars}>
-      <body className={`${geistSans.className} antialiased`}>
+    <html
+      lang="en"
+      style={paletteVars}
+      className={`${geistSans.variable} ${geistMono.variable} ${barlow.variable}`}
+    >
+      <body className="font-sans antialiased">
         {/* Skip link: the first focusable thing on the page, off-screen until
             focused, so a keyboard or screen-reader user can jump past the fixed
             header straight to the content. Targets the `<main id="main-content">`
@@ -102,6 +125,8 @@ export default function RootLayout({
         <SiteHeader />
         {children}
         <SiteFooter />
+        {/* Film grain over everything, one static fixed layer — globals.css. */}
+        <div className="h1-grain" aria-hidden="true" />
         {process.env.NODE_ENV === "production" && <Analytics />}
       </body>
     </html>
